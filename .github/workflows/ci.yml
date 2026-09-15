@@ -12,6 +12,9 @@ jobs:
     env:
       NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
       NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+      # 관리자 목록의 공개 링크 복사(Task 015)용 선택 값 — 미등록 상태로도 빌드는 통과한다
+      # (src/lib/env.ts에서 optional, buildInvoicePublicUrl이 요청 origin으로 폴백).
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
     steps:
       - uses: actions/checkout@v4
 
