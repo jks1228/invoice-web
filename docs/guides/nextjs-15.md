@@ -1,5 +1,11 @@
 # Next.js 15.5.3 개발 지침
 
+> ⚠️ **대체됨**: 이 프로젝트는 Next.js 16.3.4로 마이그레이션되었습니다 (Task 003).
+> 기준 가이드는 **`docs/guides/nextjs-16.md`** 입니다. 이 문서는 15→16에서 바뀌지 않은
+> 일반 패턴(Server Components 우선, Streaming/Suspense, Route Groups, Parallel/Intercepting
+> Routes, `after()`, 캐시 태그 등) 참고용으로만 남겨둡니다. 아래 내용 중 `middleware.ts`,
+> `next lint`, `params` 동기 접근, `experimental.turbopack` 관련 서술은 16에서 유효하지 않습니다.
+
 이 문서는 Claude Code에서 Next.js 15.5.3 프로젝트를 개발할 때 따라야 할 핵심 규칙과 가이드라인을 제공합니다.
 
 ## 🚀 필수 규칙 (엄격 준수)

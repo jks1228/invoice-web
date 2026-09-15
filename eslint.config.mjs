@@ -1,16 +1,12 @@
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { FlatCompat } from '@eslint/eslintrc'
+import next from 'eslint-config-next/core-web-vitals'
+import nextTypeScript from 'eslint-config-next/typescript'
+import prettier from 'eslint-config-prettier/flat'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-})
-
+// Next.js 16부터 eslint-config-next가 flat config를 직접 제공하므로 FlatCompat을 쓰지 않는다
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript', 'prettier'),
+  ...next,
+  ...nextTypeScript,
+  prettier,
   {
     ignores: [
       'node_modules/**',
