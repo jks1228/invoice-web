@@ -44,6 +44,22 @@ src/app/
 - `error.tsx`: 에러 UI (필요시)
 - `not-found.tsx`: 404 페이지 (필요시)
 
+### src/app/admin/ - 관리자 영역 (V2, Task 012~)
+
+```
+src/app/admin/
+├── layout.tsx          # 관리자 레이아웃 — robots: noindex + AdminShell
+├── page.tsx            # 견적서 목록 페이지
+├── loading.tsx          # 목록 스켈레톤
+└── not-found.tsx        # 관리자 영역 전용 404
+```
+
+- 루트 `app/layout.tsx`(ThemeProvider·Header·Footer)를 그대로 상속한다 — 별도 `<html>`/`<body>` 없음
+- **인증 없음(Task 018 완료 전)**: `robots: { index: false, follow: false }`로 검색 노출만 차단하며,
+  접근 제어는 아니다. 공개 헤더(`main-nav`/`mobile-nav`)에도 관리자 링크를 노출하지 않는다(URL 직접
+  접근만 허용)
+- 인증(Task 018) 완료 전에는 공개 도메인에 배포하지 않는다(`docs/ROADMAP.md` "범위 결정 사항" 참고)
+
 ### src/components/ - 컴포넌트 조직
 
 ```
@@ -67,6 +83,10 @@ src/components/
 │   └── cta.tsx        # Call-to-Action
 ├── providers/         # 🔧 Context 프로바이더
 │   └── theme-provider.tsx
+├── admin/             # 🛠️ 관리자 영역 전용 컴포넌트 (V2, Task 012~)
+│   ├── admin-shell.tsx        # 상단 서브바 + 본문 래퍼
+│   ├── admin-page-header.tsx  # 제목·설명·액션 슬롯
+│   └── admin-dev-banner.tsx   # "인증 미적용" 안내 배너
 ├── login-form.tsx     # 🔐 로그인 폼
 ├── signup-form.tsx    # ✍️ 회원가입 폼
 └── theme-toggle.tsx   # 🌓 테마 토글
