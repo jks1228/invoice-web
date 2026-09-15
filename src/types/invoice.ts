@@ -87,3 +87,43 @@ export interface InvoiceView {
 export type InvoiceLookupResult =
   | { ok: true; data: Invoice }
   | { ok: false; reason: 'not_found' | 'invalid_id' | 'notion_error' }
+
+/**
+ * 관리자 목록 화면용 경량 타입(Task 013·V2). 항목(items) 배열은 포함하지 않는다 —
+ * 목록 조회에서 항목 relation을 개별 조회하면 N+1이 발생하므로 의도적으로 제외한다(Task 017).
+ */
+export interface InvoiceListItem {
+  id: string
+  invoiceNumber: string
+  clientName: string
+  invoiceDate: string
+  dueDate?: string
+  totalAmount: number
+  status: InvoiceStatus
+  // 조회 시점에 미리 계산해 채운다(매 렌더링마다 재계산하지 않도록).
+  isOverdue: boolean
+}
+
+/**
+ * 목록 조회 결과. 단건 조회(InvoiceLookupResult)와 달리 "0건"은 실패가 아니라
+ * data: []인 정상 케이스이므로 실패 사유는 notion_error 하나만 둔다.
+ */
+export type InvoiceListResult =
+  | { ok: true; data: InvoiceListItem[]; nextCursor?: string }
+  | { ok: false; reason: 'notion_error' }
+
+/**
+ * 목록 조회 옵션 계약. 구현은 Task 017(getInvoiceList)에서 담당한다.
+ * 정렬은 로드맵상 "발행일 내림차순 고정"이 기본이라 별도 sort 옵션은 두지 않는다.
+ */
+export interface InvoiceListQuery {
+  status?: InvoiceStatus
+  pageSize?: number
+  cursor?: string
+}
+
+/**
+ * 공개 인보이스 링크 생성 함수 시그니처. 구현은 Task 015(src/lib/invoice.ts)에서 담당한다.
+ * 브라우저에서는 window.location.origin, 서버에서는 NEXT_PUBLIC_SITE_URL → 요청 origin 순으로 폴백한다.
+ */
+export type BuildInvoicePublicUrl = (id: string, origin?: string) => string
