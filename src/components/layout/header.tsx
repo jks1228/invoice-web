@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useMediaQuery } from 'usehooks-ts'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,7 +12,6 @@ import { ThemeToggle } from '@/components/theme-toggle'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
@@ -25,8 +23,11 @@ export function Header() {
               <span className="text-xl font-bold">견적서</span>
             </Link>
 
-            {/* Desktop Navigation */}
-            {!isMobile && <MainNav />}
+            {/* Desktop Navigation — CSS로만 전환한다(JS 미디어쿼리로 분기하면 서버/클라이언트
+                초기 렌더가 달라져 hydration mismatch가 발생함, Task 016에서 수정) */}
+            <div className="hidden md:block">
+              <MainNav />
+            </div>
           </div>
 
           {/* Right Side */}
@@ -34,7 +35,7 @@ export function Header() {
             <ThemeToggle />
 
             {/* Mobile Menu Button */}
-            {isMobile && (
+            <div className="md:hidden">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -46,7 +47,7 @@ export function Header() {
                   <MobileNav onClose={() => setMobileMenuOpen(false)} />
                 </SheetContent>
               </Sheet>
-            )}
+            </div>
           </div>
         </div>
       </Container>
