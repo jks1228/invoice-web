@@ -1,4 +1,8 @@
-import type { Invoice, InvoiceStatus } from '@/types/invoice'
+import type {
+  BuildInvoicePublicUrl,
+  Invoice,
+  InvoiceStatus,
+} from '@/types/invoice'
 
 // 화면(뱃지)·PDF가 공통으로 쓰는 상태 표시 라벨.
 export const STATUS_LABEL: Record<InvoiceStatus, string> = {
@@ -32,4 +36,22 @@ export function resolveSubtotal(invoice: Invoice): number {
   }
 
   return invoice.subtotal
+}
+
+/**
+ * 공개 인보이스 링크를 생성한다(Task 015, A002). 브라우저에서는 window.location.origin을,
+ * 서버에서는 NEXT_PUBLIC_SITE_URL → 호출부가 넘긴 origin(요청 origin) 순으로 폴백한다.
+ *
+ * lib/env.ts의 env 객체를 import하지 않는다 — 이 함수는 클라이언트 컴포넌트(copy-link-button.tsx)에서도
+ * 호출되는데, env.ts는 모듈 로드 시점에 NOTION_API_KEY 등 서버 전용 값을 Zod로 즉시 검증해서 클라이언트
+ * 번들에 포함되면 그 자리에서 예외를 던진다. NEXT_PUBLIC_ 변수는 Next.js가 서버/클라이언트 번들 모두에
+ * 빌드 타임에 안전하게 인라인하므로 process.env로 직접 읽어 이 문제를 피한다.
+ */
+export const buildInvoicePublicUrl: BuildInvoicePublicUrl = (id, origin) => {
+  const base =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_SITE_URL ?? origin ?? '')
+
+  return `${base}/invoice/${id}`
 }

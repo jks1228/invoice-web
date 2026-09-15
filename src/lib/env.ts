@@ -17,6 +17,10 @@ const envSchema = z.object({
   BUSINESS_EMAIL: z.string().min(1).optional(),
   BUSINESS_ADDRESS: z.string().min(1).optional(),
   BUSINESS_TAX_ID: z.string().min(1).optional(),
+  // 공개 링크 생성(Task 015, A002)용 클라이언트 노출 값. NOTION_*와 달리 NEXT_PUBLIC_ 접두사로
+  // 분리한다. 주의: buildInvoicePublicUrl(lib/invoice.ts)은 클라이언트 컴포넌트에서도 호출되므로
+  // 이 env 객체를 import하지 않고 process.env.NEXT_PUBLIC_SITE_URL을 직접 읽는다(아래 참고).
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
 })
 
 export const env = envSchema.parse({
@@ -29,6 +33,7 @@ export const env = envSchema.parse({
   BUSINESS_EMAIL: process.env.BUSINESS_EMAIL,
   BUSINESS_ADDRESS: process.env.BUSINESS_ADDRESS,
   BUSINESS_TAX_ID: process.env.BUSINESS_TAX_ID,
+  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
 })
 
 export type Env = z.infer<typeof envSchema>
