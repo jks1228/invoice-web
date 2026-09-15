@@ -3,29 +3,13 @@ import { cn } from '@/lib/utils'
 interface ContainerProps {
   children: React.ReactNode
   className?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
 }
 
-export function Container({
-  children,
-  className,
-  size = 'lg',
-}: ContainerProps) {
-  const sizes = {
-    sm: 'max-w-3xl',
-    md: 'max-w-5xl',
-    lg: 'max-w-7xl',
-    xl: 'max-w-[1400px]',
-    full: 'max-w-full',
-  }
-
+// 앱 전체가 항상 같은 폭을 쓰도록 단일 상수로 고정한다 (헤더·푸터·페이지 콘텐츠 공용).
+export function Container({ children, className }: ContainerProps) {
   return (
     <div
-      className={cn(
-        'mx-auto w-full px-4 sm:px-6 lg:px-8',
-        sizes[size],
-        className
-      )}
+      className={cn('mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8', className)}
     >
       {children}
     </div>
