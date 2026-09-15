@@ -17,6 +17,7 @@ export {
   ITEM_PROPS,
   propertyReaders,
   getInvoiceById,
+  getInvoiceList,
   getBusinessInfo,
 } from './invoices'
 

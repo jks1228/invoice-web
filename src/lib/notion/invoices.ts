@@ -8,14 +8,18 @@
  */
 
 import { env } from '@/lib/env'
+import { isOverdue } from '@/lib/invoice'
 
 import { getNotionClient } from './client'
 
-import type { NotionPage } from './types'
+import type { NotionPage, StatusFilter } from './types'
 import type {
   BusinessInfo,
   Invoice,
   InvoiceItem,
+  InvoiceListItem,
+  InvoiceListQuery,
+  InvoiceListResult,
   InvoiceLookupResult,
   InvoiceStatus,
 } from '@/types/invoice'
@@ -23,6 +27,8 @@ import type {
 /**
  * 도메인 필드 → Notion property 표시명 매핑.
  * property 이름 문자열은 이 상수에서만 정의하고 다른 곳에서 재선언하지 않는다.
+ * 목록 조회(Task 017 getInvoiceList)에서도 이 상수를 그대로 재사용한다 —
+ * items(항목 relation)를 제외한 나머지 필드가 InvoiceListItem과 그대로 대응된다.
  */
 export const INVOICE_PROPS = {
   invoiceNumber: '견적서 번호',
@@ -272,6 +278,75 @@ export async function getInvoiceById(id: string): Promise<InvoiceLookupResult> {
   }
 
   return { ok: true, data: invoice }
+}
+
+function mapListItem(page: NotionPage): InvoiceListItem {
+  const invoiceNumber =
+    propertyReaders.readTitle(page, INVOICE_PROPS.invoiceNumber) ?? page.id
+  const clientName =
+    propertyReaders.readRichText(page, INVOICE_PROPS.clientName) ??
+    '(클라이언트 미상)'
+  const invoiceDate =
+    propertyReaders.readDate(page, INVOICE_PROPS.invoiceDate) ??
+    page.created_time
+  const dueDate =
+    propertyReaders.readDate(page, INVOICE_PROPS.dueDate) ?? undefined
+  const totalAmount =
+    propertyReaders.readNumber(page, INVOICE_PROPS.totalAmount) ?? 0
+  const status = parseStatus(readStatusValue(page, INVOICE_PROPS.status))
+
+  return {
+    id: page.id,
+    invoiceNumber,
+    clientName,
+    invoiceDate,
+    dueDate,
+    totalAmount,
+    status,
+    isOverdue: isOverdue(dueDate, status),
+  }
+}
+
+/**
+ * 관리자 목록용 견적서 목록을 조회한다(Task 017, A001·A004).
+ * getAllPages()(전체 자동 페이지네이션)는 대량 데이터에서 API 호출이 폭증할 위험이 있어 쓰지 않고,
+ * queryDatabase()를 직접 호출해 page_size + start_cursor로 첫 페이지만 가져온다.
+ * 항목(relation)은 개별 조회하지 않는다(N+1 방지) — 총금액은 Notion 값을 그대로 사용.
+ */
+export async function getInvoiceList(
+  query: InvoiceListQuery = {}
+): Promise<InvoiceListResult> {
+  const client = getNotionClient()
+  const pageSize = Math.min(query.pageSize ?? 20, 100)
+
+  const filter: StatusFilter | undefined = query.status
+    ? { property: INVOICE_PROPS.status, status: { equals: query.status } }
+    : undefined
+
+  try {
+    const response = await client.queryDatabase<NotionPage>(
+      env.NOTION_DATABASE_ID,
+      {
+        filter,
+        sorts: [
+          { property: INVOICE_PROPS.invoiceDate, direction: 'descending' },
+        ],
+        start_cursor: query.cursor,
+        page_size: pageSize,
+      }
+    )
+
+    return {
+      ok: true,
+      data: response.results.map(mapListItem),
+      nextCursor: response.next_cursor ?? undefined,
+    }
+  } catch (error) {
+    // 사용자에게는 상위 호출부(admin/page.tsx)가 일반화된 오류 UI만 보여주고,
+    // 실패 원인은 여기 서버 로그에만 남긴다(V1 Task 008과 동일 정책).
+    console.error('Notion 견적서 목록 조회 실패:', error)
+    return { ok: false, reason: 'notion_error' }
+  }
 }
 
 /**
