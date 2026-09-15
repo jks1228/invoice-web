@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright MCP 테스트 스냅샷 (일회성 디버그 산출물)
+.playwright-mcp/
+
+# Shrimp Task Manager 로컬 작업 데이터 (자체 .git 저장소 포함, 소스코드 아님)
+shrimp_data/
