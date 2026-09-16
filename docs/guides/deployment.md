@@ -3,19 +3,17 @@
 Invoice Web을 Vercel에 배포하는 절차입니다. GitHub Actions CI(`.github/workflows/ci.yml`)는 이미
 저장소에 구성되어 있으므로, 아래는 계정 연결이 필요한 나머지 단계입니다.
 
-> ## ⚠️ 배포 게이트: 관리자 영역(`/admin`)은 인증 완료 전까지 공개 도메인에 배포하지 않는다
+> ## ✅ 관리자 인증(Task 018) 적용됨
 >
-> V2 고도화로 추가된 관리자 견적서 목록(`/admin`)은 **아직 인증이 구현되어 있지 않다**(`docs/ROADMAP.md`
-> Task 018, "보류 — 결정 필요"). URL을 아는 누구나 전체 클라이언트 목록·금액·상태를 볼 수 있는
-> 상태이므로, Task 018이 완료되기 전에는:
+> 관리자 견적서 목록(`/admin`)은 단일 비밀번호 + 서명된 세션 쿠키로 보호됩니다(`proxy.ts`가
+> `/admin/:path*`를 가로채 미인증 요청을 `/admin/login`으로 리다이렉트). 배포 전 아래 두 환경 변수를
+> **반드시** Production/Preview에 등록하세요 — 없으면 `src/lib/env.ts`가 빌드/기동 시점에 즉시
+> 실패합니다.
 >
-> - 프로덕션(공개 도메인)에 배포하지 않거나
-> - 배포하더라도 Vercel Preview/Production **배포 보호(Password/SSO Protection)** 기능으로 `/admin`
->   포함 전체 배포를 외부 접근 자체를 차단한 상태로만 배포한다
+> - `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET` (생성 방법은 아래 "2. Vercel 환경 변수 등록" 표 참고)
 >
-> `/admin`에는 이미 `robots: { index: false, follow: false }`(검색 노출 차단)와 "인증 미적용" 안내
-> 배너가 적용되어 있지만, 이는 완화책일 뿐 접근 제어가 아니다. 아래 "관리자 영역 배포 체크리스트"에서
-> 다시 확인한다.
+> `/admin`에는 추가로 `robots: { index: false, follow: false }`(검색 노출 차단)도 적용되어 있습니다.
+> 아래 "관리자 영역 배포 체크리스트"에서 다시 확인합니다.
 
 ## 1. Vercel 프로젝트 연결
 
@@ -27,38 +25,42 @@ Invoice Web을 Vercel에 배포하는 절차입니다. GitHub Actions CI(`.githu
 
 Vercel 프로젝트 → Settings → Environment Variables에서 Production/Preview 각각에 등록합니다.
 
-| 변수                   | 필수 여부  | 설명                                                                                                                                                                                                      |
-| ---------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NOTION_API_KEY`       | 필수       | Notion 통합 토큰                                                                                                                                                                                          |
-| `NOTION_DATABASE_ID`   | 필수       | 견적서 데이터베이스 ID                                                                                                                                                                                    |
-| `BUSINESS_NAME`        | 선택       | 미설정 시 발행자 정보 섹션 미표시                                                                                                                                                                         |
-| `BUSINESS_OWNER_NAME`  | 선택       |                                                                                                                                                                                                           |
-| `BUSINESS_PHONE`       | 선택       |                                                                                                                                                                                                           |
-| `BUSINESS_EMAIL`       | 선택       |                                                                                                                                                                                                           |
-| `BUSINESS_ADDRESS`     | 선택       |                                                                                                                                                                                                           |
-| `BUSINESS_TAX_ID`      | 선택       |                                                                                                                                                                                                           |
-| `NEXT_PUBLIC_SITE_URL` | 선택(권장) | 관리자 목록의 "링크 복사"(Task 015)가 서버 렌더링 시 사용할 공개 도메인(예: `https://invoice.example.com`). 클라이언트에 노출되는 값이라 `NEXT_PUBLIC_` 접두사를 쓴다. 미설정 시 요청 origin으로 폴백한다 |
+| 변수                   | 필수 여부  | 설명                                                                                                                                                                                                                           |
+| ---------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NOTION_API_KEY`       | 필수       | Notion 통합 토큰                                                                                                                                                                                                               |
+| `NOTION_DATABASE_ID`   | 필수       | 견적서 데이터베이스 ID                                                                                                                                                                                                         |
+| `BUSINESS_NAME`        | 선택       | 미설정 시 발행자 정보 섹션 미표시                                                                                                                                                                                              |
+| `BUSINESS_OWNER_NAME`  | 선택       |                                                                                                                                                                                                                                |
+| `BUSINESS_PHONE`       | 선택       |                                                                                                                                                                                                                                |
+| `BUSINESS_EMAIL`       | 선택       |                                                                                                                                                                                                                                |
+| `BUSINESS_ADDRESS`     | 선택       |                                                                                                                                                                                                                                |
+| `BUSINESS_TAX_ID`      | 선택       |                                                                                                                                                                                                                                |
+| `NEXT_PUBLIC_SITE_URL` | 선택(권장) | 관리자 목록의 "링크 복사"(Task 015)가 서버 렌더링 시 사용할 공개 도메인(예: `https://invoice.example.com`). 클라이언트에 노출되는 값이라 `NEXT_PUBLIC_` 접두사를 쓴다. 미설정 시 요청 origin으로 폴백한다                      |
+| `ADMIN_PASSWORD_HASH`  | 필수       | 관리자 비밀번호의 scrypt 해시(`salt:hash`, hex). `node -e "const c=require('crypto');const s=c.randomBytes(16);console.log(s.toString('hex')+':'+c.scryptSync(process.argv[1],s,64).toString('hex'))" '원하는비밀번호'`로 생성 |
+| `ADMIN_SESSION_SECRET` | 필수       | 세션 쿠키(JWT) 서명 키, 32자 이상. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`로 생성                                                                                                           |
 
 값 채우는 방법은 [`notion-quickstart.md`](./notion-quickstart.md) 참고.
 
 ## 3. GitHub Actions Secrets 등록
 
-GitHub 저장소 → Settings → Secrets and variables → Actions에 `NOTION_API_KEY`, `NOTION_DATABASE_ID`를
-등록합니다(`NEXT_PUBLIC_SITE_URL`은 선택 — 미등록해도 빌드는 통과함). `npm run build`는 실제로
-Notion을 호출하지 않고(정적 페이지를 미리 생성하지 않는 구조) `src/lib/env.ts`가 값이 비어있지 않은지만
-검증하므로, **CI 빌드 통과만 원한다면 더미 문자열도 가능**합니다. 실제 Notion 연동까지 CI에서
-검증하고 싶다면 진짜 값을 등록하세요.
+GitHub 저장소 → Settings → Secrets and variables → Actions에 `NOTION_API_KEY`, `NOTION_DATABASE_ID`,
+`ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`을 등록합니다(`NEXT_PUBLIC_SITE_URL`은 선택 — 미등록해도
+빌드는 통과함). `ADMIN_PASSWORD_HASH`/`ADMIN_SESSION_SECRET`은 `src/lib/env.ts`에서 필수값이라
+없으면 `npm run build`가 즉시 실패합니다. `npm run build`는 실제로 Notion을 호출하지 않고(정적
+페이지를 미리 생성하지 않는 구조) `src/lib/env.ts`가 값이 비어있지 않은지만 검증하므로, **CI 빌드
+통과만 원한다면 더미 문자열도 가능**합니다(단, `ADMIN_SESSION_SECRET`은 32자 이상이어야 함). 실제
+Notion 연동까지 CI에서 검증하고 싶다면 진짜 값을 등록하세요.
 
 ## 관리자 영역 배포 체크리스트 (V2)
 
-`/admin` 관련 변경(Task 012~019)을 배포하기 전 아래를 순서대로 확인합니다.
+`/admin` 관련 변경(Task 012~020)을 배포하기 전 아래를 순서대로 확인합니다.
 
-- [ ] **Task 018(관리자 인증)이 완료되었는가?** 완료되지 않았다면 이 배포에는 Vercel 배포 보호
-      (Password/SSO Protection)를 반드시 활성화한다(위 "배포 게이트" 참고)
+- [ ] `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`을 Production 환경 변수로 등록했는가?
 - [ ] `NEXT_PUBLIC_SITE_URL`을 Production 환경 변수로 등록했는가?(생략해도 요청 origin으로 폴백해
       동작은 하지만, 커스텀 도메인을 쓴다면 정확한 값을 등록하는 편이 "링크 복사" 결과가 일관됨)
 - [ ] 배포된 `/admin`의 페이지 소스에 `<meta name="robots" content="noindex, nofollow">`가 포함되어
       있는지 확인(검색 노출 차단이 실제로 적용됐는지)
+- [ ] 로그인 없이 배포된 `/admin`에 직접 접근 시 `/admin/login`으로 리다이렉트되는지 확인
 - [ ] 배포된 `/admin`에서 견적서 목록이 실제 Notion 데이터와 일치하는지 확인
 - [ ] "링크 복사" 결과 URL이 실제 배포 도메인(`https://...`)을 정확히 가리키는지 확인
 

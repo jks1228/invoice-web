@@ -21,6 +21,11 @@ const envSchema = z.object({
   // 분리한다. 주의: buildInvoicePublicUrl(lib/invoice.ts)은 클라이언트 컴포넌트에서도 호출되므로
   // 이 env 객체를 import하지 않고 process.env.NEXT_PUBLIC_SITE_URL을 직접 읽는다(아래 참고).
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  // 관리자 인증(Task 018, A005). 값이 없으면 앱 시작 시 즉시 실패해 인증이 비활성화된 채로
+  // 배포되는 사고를 막는다. 저장 형식은 src/lib/auth/password.ts 참고(salt:hash, scrypt hex).
+  ADMIN_PASSWORD_HASH: z.string().min(1),
+  // 세션 JWT(HS256) 서명 키. 32자 이상 무작위 문자열 — src/lib/auth/session.ts 참고.
+  ADMIN_SESSION_SECRET: z.string().min(32),
 })
 
 export const env = envSchema.parse({
@@ -34,6 +39,8 @@ export const env = envSchema.parse({
   BUSINESS_ADDRESS: process.env.BUSINESS_ADDRESS,
   BUSINESS_TAX_ID: process.env.BUSINESS_TAX_ID,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+  ADMIN_SESSION_SECRET: process.env.ADMIN_SESSION_SECRET,
 })
 
 export type Env = z.infer<typeof envSchema>

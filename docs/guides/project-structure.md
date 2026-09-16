@@ -44,21 +44,29 @@ src/app/
 - `error.tsx`: 에러 UI (필요시)
 - `not-found.tsx`: 404 페이지 (필요시)
 
-### src/app/admin/ - 관리자 영역 (V2, Task 012~)
+### src/app/admin/ - 관리자 영역 (V2, Task 012~018)
 
 ```
 src/app/admin/
-├── layout.tsx          # 관리자 레이아웃 — robots: noindex + AdminShell
-├── page.tsx            # 견적서 목록 페이지
-├── loading.tsx          # 목록 스켈레톤
+├── layout.tsx           # robots: noindex만 담당 (패스스루, AdminShell 없음)
+├── login/
+│   └── page.tsx         # 로그인 페이지 — 세션 있으면 /admin으로 redirect
+├── (protected)/         # 인증된 사용자만 도달 (proxy.ts가 보호)
+│   ├── layout.tsx       # AdminShell(상단바+로그아웃) 래핑
+│   ├── page.tsx         # 견적서 목록 페이지
+│   └── loading.tsx      # 목록 스켈레톤
+├── [...catchAll]/
+│   └── page.tsx         # 매치되지 않는 /admin/* → not-found.tsx로 폴백
 └── not-found.tsx        # 관리자 영역 전용 404
 ```
 
 - 루트 `app/layout.tsx`(ThemeProvider·Header·Footer)를 그대로 상속한다 — 별도 `<html>`/`<body>` 없음
-- **인증 없음(Task 018 완료 전)**: `robots: { index: false, follow: false }`로 검색 노출만 차단하며,
-  접근 제어는 아니다. 공개 헤더(`main-nav`/`mobile-nav`)에도 관리자 링크를 노출하지 않는다(URL 직접
-  접근만 허용)
-- 인증(Task 018) 완료 전에는 공개 도메인에 배포하지 않는다(`docs/ROADMAP.md` "범위 결정 사항" 참고)
+- **인증(Task 018) 적용됨**: 프로젝트 루트 `proxy.ts`가 `/admin/:path*`를 가로채 세션 쿠키(`src/lib/auth/session.ts`,
+  jose 서명)를 검증하고 미인증 요청을 `/admin/login`으로 리다이렉트한다. `robots: { index: false, follow: false }`는
+  검색 노출 차단용 별도 완화책으로 계속 유지한다
+- `(protected)` 라우트 그룹은 URL에 영향을 주지 않으며, 로그인 페이지가 `AdminShell`(로그아웃 버튼 포함)을
+  상속하지 않도록 분리하는 목적만 가진다
+- 공개 헤더(`main-nav`/`mobile-nav`)에는 관리자 링크를 노출하지 않는다(URL 직접 접근만 허용)
 
 ### src/components/ - 컴포넌트 조직
 
@@ -83,12 +91,10 @@ src/components/
 │   └── cta.tsx        # Call-to-Action
 ├── providers/         # 🔧 Context 프로바이더
 │   └── theme-provider.tsx
-├── admin/             # 🛠️ 관리자 영역 전용 컴포넌트 (V2, Task 012~)
-│   ├── admin-shell.tsx        # 상단 서브바 + 본문 래퍼
+├── admin/             # 🛠️ 관리자 영역 전용 컴포넌트 (V2, Task 012~018)
+│   ├── admin-shell.tsx        # 상단 서브바(로그아웃 버튼 포함) + 본문 래퍼
 │   ├── admin-page-header.tsx  # 제목·설명·액션 슬롯
-│   └── admin-dev-banner.tsx   # "인증 미적용" 안내 배너
-├── login-form.tsx     # 🔐 로그인 폼
-├── signup-form.tsx    # ✍️ 회원가입 폼
+│   └── login-form.tsx         # 🔐 관리자 로그인 폼
 └── theme-toggle.tsx   # 🌓 테마 토글
 ```
 
@@ -124,7 +130,13 @@ src/components/
 ```
 src/lib/
 ├── utils.ts           # 🛠️ 공통 유틸리티 함수
-└── env.ts             # 🔧 환경변수 검증
+├── env.ts             # 🔧 환경변수 검증
+└── auth/              # 🔐 관리자 인증 (V2, Task 018)
+    ├── password.ts     # scrypt 비밀번호 검증 (Node 전용, proxy.ts에서 import 금지)
+    ├── session.ts      # jose 세션 JWT 암복호화 + 쿠키 (Edge/Node 공용)
+    ├── rate-limit.ts   # 로그인 실패 인메모리 rate limit
+    ├── schema.ts       # 로그인 폼 zod 스키마
+    └── actions.ts      # loginAction/logoutAction (Server Actions)
 ```
 
 **📚 lib/ 폴더 확장 가이드:**
